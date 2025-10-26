@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { HardhatUserConfig } from "hardhat/config";
+import "@nomicfoundation/hardhat-toolbox";
 
 const RPC_URL = process.env.RPC_URL!;
 const CHAIN_ID = Number(process.env.CHAIN_ID || "31338");
