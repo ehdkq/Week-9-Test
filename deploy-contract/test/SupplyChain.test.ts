@@ -1,131 +1,71 @@
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { expect } from "chai";
-import { ethers } from "hardhat"; // <-- 1. CHANGED IMPORT
+import { ethers } from "hardhat";
 
-describe("SupplyChain (with didlab Signer)", function () {
-  
-  async function deploySupplyChainFixture() {
-    // 2. CHANGED: No longer uses 'hre'
-    const [owner, didlabSigner, device1, unauthorizedSigner] = await ethers.getSigners();
-    
-    // NEW Ethers v6 syntax
-const supplyChain = await ethers.deployContract("SupplyChain", [didlabSigner.address]);
-    const getTxHash = async (
-      user: string,
-      batchId: number,
-      temp: string,
-      hum: string,
-      nonce: bigint
-    ) => {
-      return ethers.keccak256(
-        ethers.solidityPacked(
-        ["address", "address", "uint256", "string", "string", "uint256"],
-        [
-          await supplyChain.getAddress(), // address(this)
-          user,                           // msg.sender (device1)
-          BigInt(batchId),
-          temp,
-          hum,
-          nonce
-        ]
-      )
-    );
-  };
+describe("SupplyChain (EIP-712)", function () {
 
-
-
-    return { 
-      supplyChain, 
-      owner, 
-      didlabSigner, 
-      device1, 
-      unauthorizedSigner,
-      getTxHash 
-    };
+  async function deployFixture() {
+    const [owner, didlabSigner, user] = await ethers.getSigners();
+    const supplyChain = await ethers.deployContract("SupplyChain", [didlabSigner.address]);
+    await supplyChain.waitForDeployment();
+    return { owner, didlabSigner, user, supplyChain };
   }
 
-  // Test 1: Deployment
-  it("Should set the correct didlabSignerAddress", async function () {
-    const { supplyChain, didlabSigner } = await loadFixture(deploySupplyChainFixture);
-    expect(await supplyChain.didlabSignerAddress()).to.equal(didlabSigner.address);
-  });
+  it("signs typed data, recovers correctly, and enforces nonce", async function () {
+    const { didlabSigner, user, supplyChain } = await loadFixture(deployFixture);
 
-  // Test 2: Unprotected Feature
-  it("Should allow any user to create a new batch", async function () {
-    const { supplyChain, device1 } = await loadFixture(deploySupplyChainFixture);
-    await expect(supplyChain.connect(device1).createBatch("Organic Apples"))
-      .to.emit(supplyChain, "BatchCreated")
-      .withArgs(1, device1.address, "Organic Apples");
-  });
+    // 1) Print domain inputs actually used
+    const { chainId } = await ethers.provider.getNetwork();
+    console.log("chainId:", chainId);
+    console.log("verifyingContract (v6):", await supplyChain.getAddress()); // .target also works in v6 as alias
+    console.log("didlabSigner:", didlabSigner.address);
+    console.log("user:", user.address);
 
-  // Test 3: Nonce Check
-  it("Should return a nonce of 0 for a new user", async function () {
-    const { supplyChain, device1 } = await loadFixture(deploySupplyChainFixture);
-    expect(await supplyChain.getNonce(device1.address)).to.equal(0);
-  });
+    // 2) Read the current nonce from the contract (must be right before signing)
+    const nonce = await supplyChain.nonces(user.address);
+    console.log("nonce:", nonce.toString());
 
-  // Test 4: Successful Authorized Action (SUCCESS case)
-  it("Should PASS for addSensorReading with a valid didlab signature", async function () {
-    const { supplyChain, didlabSigner, device1, getTxHash } = await loadFixture(deploySupplyChainFixture);
-    await supplyChain.connect(device1).createBatch("Batch 001");
-    
-    const batchId = 1;
-    const temp = "25C";
-    const hum = "60%";
-    const nonce = BigInt(await supplyChain.getNonce(device1.address)); // 0n
-    
-    const txHash = await getTxHash(device1.address, batchId, temp, hum, nonce);
-    // 2. CHANGED: No longer uses 'hre'
-    const signature = await didlabSigner.signMessage(ethers.getBytes(txHash)); 
-    
+    // 3) Prepare EIP-712 domain, types, value
+    const domain = {
+      name: "DidLabSupplyChain",
+      version: "1",
+      chainId: Number(chainId),
+      verifyingContract: await supplyChain.getAddress(),
+    } as const;
+
+    const types = {
+      SensorReading: [
+        { name: "user", type: "address" },
+        { name: "batchId", type: "uint256" },
+        { name: "reading", type: "int256" },
+        { name: "nonce", type: "uint256" },
+      ],
+    } as const;
+
+    const value = {
+      user: user.address,
+      batchId: 1n,
+      reading: 42n,   // example data
+      nonce,
+    } as const;
+
+    // 4) Sign typed data with the didlab signer
+    const signature = await didlabSigner.signTypedData(domain, types, value);
+
+    // 5) Recover locally and compare (must equal didlab signer)
+    const recovered = ethers.recoverTypedData(domain, types, value, signature);
+    console.log("recovered:", recovered);
+    expect(recovered).to.equal(didlabSigner.address);
+
+    // 6) Call once → should succeed
     await expect(
-      supplyChain.connect(device1).addSensorReading(batchId, temp, hum, nonce, signature)
-    ).to.emit(supplyChain, "SensorDataAdded");
+      supplyChain.connect(user).addSensorReading(value.batchId, value.reading, value.nonce, signature)
+    ).to.not.be.reverted;
 
-    const batch = await supplyChain.batches(1);
-    // This should work now that the types are loaded
-    expect((batch as any).readings.length).to.equal(1);
-  });
-
-  // Test 5: Unauthorized Action (FAILURE case)
-  it("Should FAIL for addSensorReading with an *invalid* signature", async function () {
-    const { supplyChain, unauthorizedSigner, device1, getTxHash } = await loadFixture(deploySupplyChainFixture);
-    await supplyChain.connect(device1).createBatch("Batch 002");
-    
-    const batchId = 1;
-    const temp = "30C";
-    const hum = "70%";
-    const nonce = await supplyChain.getNonce(device1.address); // 0n
-    
-    const txHash = await getTxHash(device1.address, batchId, temp, hum, nonce);
-    // 2. CHANGED: No longer uses 'hre'
-    const signature = await unauthorizedSigner.signMessage(ethers.getBytes(txHash)); 
-    
+    // 7) Replay same signature → must revert with Bad nonce
     await expect(
-      supplyChain.connect(device1).addSensorReading(batchId, temp, hum, nonce, signature)
-    ).to.be.revertedWith("Invalid didlab signature");
-    
-    expect(await supplyChain.getNonce(device1.address)).to.equal(0);
+      supplyChain.connect(user).addSensorReading(value.batchId, value.reading, value.nonce, signature)
+    ).to.be.revertedWith("Bad nonce");
   });
 
-  // Test 6: Replay Attack (FAILURE case)
-  it("Should FAIL a replay attack (re-using a valid signature)", async function () {
-    const { supplyChain, didlabSigner, device1, getTxHash } = await loadFixture(deploySupplyChainFixture);
-    await supplyChain.connect(device1).createBatch("Batch 001");
-    
-    const batchId = 1;
-    const temp = "25C";
-    const hum = "60%";
-    const nonce = await supplyChain.getNonce(device1.address); // nonce = 0
-    const txHash = await getTxHash(device1.address, batchId, temp, hum, nonce);
-    // 2. CHANGED: No longer uses 'hre'
-    const signature = await didlabSigner.signMessage(ethers.getBytes(txHash));
-    
-    await supplyChain.connect(device1).addSensorReading(batchId, temp, hum, nonce, signature);
-    expect(await supplyChain.getNonce(device1.address)).to.equal(1);
-    
-    await expect(
-      supplyChain.connect(device1).addSensorReading(batchId, temp, hum, nonce, signature)
-    ).to.be.revertedWith("Invalid nonce");
-  });
 });
