@@ -26,18 +26,27 @@ import type {
 export interface SupplyChainInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "SENSOR_READING_TYPEHASH"
       | "addSensorReading"
       | "batches"
       | "createBatch"
       | "didlabSignerAddress"
+      | "eip712Domain"
       | "getNonce"
       | "nonces"
   ): FunctionFragment;
 
   getEvent(
-    nameOrSignatureOrTopic: "BatchCreated" | "SensorDataAdded"
+    nameOrSignatureOrTopic:
+      | "BatchCreated"
+      | "EIP712DomainChanged"
+      | "SensorDataAdded"
   ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "SENSOR_READING_TYPEHASH",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "addSensorReading",
     values: [BigNumberish, string, string, BigNumberish, BytesLike]
@@ -52,11 +61,19 @@ export interface SupplyChainInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "eip712Domain",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "getNonce",
     values: [AddressLike]
   ): string;
   encodeFunctionData(functionFragment: "nonces", values: [AddressLike]): string;
 
+  decodeFunctionResult(
+    functionFragment: "SENSOR_READING_TYPEHASH",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "addSensorReading",
     data: BytesLike
@@ -68,6 +85,10 @@ export interface SupplyChainInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "didlabSignerAddress",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "eip712Domain",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getNonce", data: BytesLike): Result;
@@ -90,6 +111,16 @@ export namespace BatchCreatedEvent {
     farmer: string;
     description: string;
   }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace EIP712DomainChangedEvent {
+  export type InputTuple = [];
+  export type OutputTuple = [];
+  export interface OutputObject {}
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
   export type Log = TypedEventLog<Event>;
@@ -161,6 +192,8 @@ export interface SupplyChain extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  SENSOR_READING_TYPEHASH: TypedContractMethod<[], [string], "view">;
+
   addSensorReading: TypedContractMethod<
     [
       _batchId: BigNumberish,
@@ -194,6 +227,22 @@ export interface SupplyChain extends BaseContract {
 
   didlabSignerAddress: TypedContractMethod<[], [string], "view">;
 
+  eip712Domain: TypedContractMethod<
+    [],
+    [
+      [string, string, string, bigint, string, string, bigint[]] & {
+        fields: string;
+        name: string;
+        version: string;
+        chainId: bigint;
+        verifyingContract: string;
+        salt: string;
+        extensions: bigint[];
+      }
+    ],
+    "view"
+  >;
+
   getNonce: TypedContractMethod<[_user: AddressLike], [bigint], "view">;
 
   nonces: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
@@ -202,6 +251,9 @@ export interface SupplyChain extends BaseContract {
     key: string | FunctionFragment
   ): T;
 
+  getFunction(
+    nameOrSignature: "SENSOR_READING_TYPEHASH"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "addSensorReading"
   ): TypedContractMethod<
@@ -236,6 +288,23 @@ export interface SupplyChain extends BaseContract {
     nameOrSignature: "didlabSignerAddress"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "eip712Domain"
+  ): TypedContractMethod<
+    [],
+    [
+      [string, string, string, bigint, string, string, bigint[]] & {
+        fields: string;
+        name: string;
+        version: string;
+        chainId: bigint;
+        verifyingContract: string;
+        salt: string;
+        extensions: bigint[];
+      }
+    ],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "getNonce"
   ): TypedContractMethod<[_user: AddressLike], [bigint], "view">;
   getFunction(
@@ -248,6 +317,13 @@ export interface SupplyChain extends BaseContract {
     BatchCreatedEvent.InputTuple,
     BatchCreatedEvent.OutputTuple,
     BatchCreatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "EIP712DomainChanged"
+  ): TypedContractEvent<
+    EIP712DomainChangedEvent.InputTuple,
+    EIP712DomainChangedEvent.OutputTuple,
+    EIP712DomainChangedEvent.OutputObject
   >;
   getEvent(
     key: "SensorDataAdded"
@@ -267,6 +343,17 @@ export interface SupplyChain extends BaseContract {
       BatchCreatedEvent.InputTuple,
       BatchCreatedEvent.OutputTuple,
       BatchCreatedEvent.OutputObject
+    >;
+
+    "EIP712DomainChanged()": TypedContractEvent<
+      EIP712DomainChangedEvent.InputTuple,
+      EIP712DomainChangedEvent.OutputTuple,
+      EIP712DomainChangedEvent.OutputObject
+    >;
+    EIP712DomainChanged: TypedContractEvent<
+      EIP712DomainChangedEvent.InputTuple,
+      EIP712DomainChangedEvent.OutputTuple,
+      EIP712DomainChangedEvent.OutputObject
     >;
 
     "SensorDataAdded(uint256,uint256,address)": TypedContractEvent<

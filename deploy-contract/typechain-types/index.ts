@@ -10,10 +10,16 @@ export type { AccessControl } from "./@openzeppelin/contracts/access/AccessContr
 export { AccessControl__factory } from "./factories/@openzeppelin/contracts/access/AccessControl__factory";
 export type { IAccessControl } from "./@openzeppelin/contracts/access/IAccessControl";
 export { IAccessControl__factory } from "./factories/@openzeppelin/contracts/access/IAccessControl__factory";
+export type { IERC5267 } from "./@openzeppelin/contracts/interfaces/IERC5267";
+export { IERC5267__factory } from "./factories/@openzeppelin/contracts/interfaces/IERC5267__factory";
+export type { EIP712 } from "./@openzeppelin/contracts/utils/cryptography/EIP712";
+export { EIP712__factory } from "./factories/@openzeppelin/contracts/utils/cryptography/EIP712__factory";
 export type { ERC165 } from "./@openzeppelin/contracts/utils/introspection/ERC165";
 export { ERC165__factory } from "./factories/@openzeppelin/contracts/utils/introspection/ERC165__factory";
 export type { IERC165 } from "./@openzeppelin/contracts/utils/introspection/IERC165";
 export { IERC165__factory } from "./factories/@openzeppelin/contracts/utils/introspection/IERC165__factory";
+export type { ShortStrings } from "./@openzeppelin/contracts/utils/ShortStrings";
+export { ShortStrings__factory } from "./factories/@openzeppelin/contracts/utils/ShortStrings__factory";
 export type { AgriSensorData } from "./contracts/AgriSensorData";
 export { AgriSensorData__factory } from "./factories/contracts/AgriSensorData__factory";
 export type { Counter } from "./contracts/Counter";

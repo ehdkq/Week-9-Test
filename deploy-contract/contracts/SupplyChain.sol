@@ -3,8 +3,9 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
-contract SupplyChain {
+contract SupplyChain is EIP712 {
     using Counters for Counters.Counter;
 
     // --- State Variables ---
@@ -30,12 +31,16 @@ contract SupplyChain {
 
     mapping(uint256 => Batch) public batches;
 
+    bytes32 public constant SENSOR_READING_TYPEHASH = keccak256(
+        "SensorReading(address user,uint256 batchId,string temperature,string humidity,uint256 nonce)"
+    );
+
     // --- Events ---
     event BatchCreated(uint256 indexed batchId, address indexed farmer, string description);
     event SensorDataAdded(uint256 indexed batchId, uint256 timestamp, address indexed reportedBy);
 
     // --- Constructor ---
-    constructor(address _didlabSigner) {
+    constructor(address _didlabSigner) EIP712("DidLabSupplyChain", "1"){
         require(_didlabSigner != address(0), "Invalid signer address");
         didlabSignerAddress = _didlabSigner;
     }
@@ -55,11 +60,12 @@ contract SupplyChain {
     }
 
     // --- Feature 2 (Protected): Add Sensor Reading ---
+    // THIS FUNCTION HAS BEEN UPDATED
     function addSensorReading(
         uint256 _batchId,
         string memory _temperature,
         string memory _humidity,
-        uint256 _nonce, // <-- CRITICAL FIX HERE
+        uint256 _nonce,
         bytes memory _signature
     )
         external
@@ -69,24 +75,29 @@ contract SupplyChain {
         // 1. Check for replay attack using the passed-in nonce
         require(nonces[msg.sender] == _nonce, "Invalid nonce");
         
-        // 2. Re-create the message hash
-        bytes32 messageHash = _getTxHash(
-            _batchId,
-            _temperature,
-            _humidity,
-            _nonce
+        // 2. Re-create the EIP-712 hash [cite: 17]
+        bytes32 structHash = keccak256(
+            abi.encode(
+                SENSOR_READING_TYPEHASH,
+                msg.sender, // user
+                _batchId,
+                keccak256(bytes(_temperature)), // EIP-712 hashes strings
+                keccak256(bytes(_humidity)), // EIP-712 hashes strings
+                _nonce
+            )
         );
+        
+        bytes32 messageHash = _hashTypedDataV4(structHash); 
 
         // 3. Verify the signature
-        address recoveredSigner = _verify(messageHash, _signature);
+        address recoveredSigner = ECDSA.recover(messageHash, _signature);
         
-        // 4. AuthZ ENFORCEMENT
         require(
             recoveredSigner == didlabSignerAddress,
             "Invalid didlab signature"
         );
 
-        // 5. Prevent replay: Increment the stored nonce
+    // 5. Prevent replay: Increment the stored nonce [cite: 23]
         nonces[msg.sender]++;
 
         // 6. Execute the action
@@ -103,36 +114,8 @@ contract SupplyChain {
     }
     
     // --- Helper Functions ---
-    function _getTxHash(
-        uint256 _batchId,
-        string memory _temperature,
-        string memory _humidity,
-        uint256 _nonce
-    )
-        internal
-        view
-        returns (bytes32)
-    {
-        return keccak256(
-            abi.encodePacked(
-                address(this), // Contract address
-                msg.sender,    // User submitting the tx
-                _batchId,
-                _temperature,
-                _humidity,
-                _nonce
-            )
-        );
-    }
 
-    function _verify(bytes32 _hash, bytes memory _signature)
-        internal
-        pure
-        returns (address)
-    {
-        bytes32 ethSignedHash = ECDSA.toEthSignedMessageHash(_hash);
-        return ECDSA.recover(_hash, _signature);
-    }
+    // _getTxHash and _verify have been removed as they are replaced by EIP-712 logic
 
     function getNonce(address _user) external view returns (uint256) {
         return nonces[_user];
