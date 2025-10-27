@@ -3,7 +3,7 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 
 const RPC_URL = "https://eth.didlab.org/";
-const CHAIN_ID = 252501;
+const CHAIN_ID = 31337;
 const PRIVKEY = process.env.PRIVKEY!;
 
 const config: HardhatUserConfig = {
