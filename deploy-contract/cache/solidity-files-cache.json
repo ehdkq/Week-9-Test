@@ -376,17 +376,17 @@
       ]
     },
     "/home/geekaboo/Blockchain-Main-Project/deploy-contract/contracts/SupplyChain.sol": {
-      "lastModificationDate": 1761604810594,
-      "contentHash": "4e7775c6fc39265bb5abf736a1a43d96",
+      "lastModificationDate": 1761606206014,
+      "contentHash": "c6762a54b50e2c8f67ada7ae29904b10",
       "sourceName": "contracts/SupplyChain.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
-          "evmVersion": "paris",
           "optimizer": {
             "enabled": true,
             "runs": 200
           },
+          "evmVersion": "paris",
           "outputSelection": {
             "*": {
               "*": [

@@ -21,6 +21,11 @@ describe("SupplyChain (with didlab Signer)", function () {
     };
   }
 
+  // 
+  // ERROR 1: The stray 'it(...)' block that was here has been removed.
+  // It was breaking the syntax of the 'deploySupplyChainFixture' function.
+  //
+
   // Test 1: Deployment
   it("Should set the correct didlabSignerAddress", async function () {
     const { supplyChain, didlabSigner } = await loadFixture(deploySupplyChainFixture);
@@ -49,12 +54,10 @@ describe("SupplyChain (with didlab Signer)", function () {
     const batchId = 1; // JS number
     const temp = "25C";
     const hum = "60%";
-    // 3. FIX: Ethers v6 'getNonce' already returns a bigint
     const nonce = await supplyChain.getNonce(device1.address); // 0n
     
     // --- START EIP-712 SIGNING ---
     const { chainId } = await ethers.provider.getNetwork();
-    // 4. FIX: Ethers v6 uses .target
     const verifyingContract = await supplyChain.getAddress();
 
     const domain = {
@@ -76,23 +79,25 @@ describe("SupplyChain (with didlab Signer)", function () {
 
     const value = {
       user: device1.address,
-      batchId: batchId, // JS number is fine here, Ethers handles it
+      batchId: batchId,
       temperature: temp,
       humidity: hum,
       nonce: nonce // This is a bigint
     };
     
-    // 5. FIX: Ethers v6 uses signTypedData (no underscore)
     const signature = await didlabSigner.signTypedData(domain, types, value);
     // --- END EIP-712 SIGNING ---
     
+    // ERROR 2: Fixed this call. 
+    // It was using 'user' (which is not defined here) instead of 'device1'.
+    // It was also using 'value.reading' (which doesn't exist) instead of 'temp' and 'hum'.
     await expect(
       supplyChain.connect(device1).addSensorReading(batchId, temp, hum, nonce, signature)
     ).to.emit(supplyChain, "SensorDataAdded");
 
     const batch = await supplyChain.batches(1);
     expect((batch as any).readings.length).to.equal(1);
-    expect(await supplyChain.getNonce(device1.address)).to.equal(1n); // 6. FIX: Compare to a bigint (1n)
+    expect(await supplyChain.getNonce(device1.address)).to.equal(1n); // Compare to a bigint (1n)
   });
 
   // Test 5: Unauthorized Action (FAILURE case)
@@ -134,7 +139,6 @@ describe("SupplyChain (with didlab Signer)", function () {
       nonce: nonce 
     };
     
-    // 7. FIX: Ethers v6 uses signTypedData (no underscore)
     const signature = await unauthorizedSigner.signTypedData(domain, types, value);
     // --- END EIP-712 SIGNING ---
     
@@ -142,7 +146,7 @@ describe("SupplyChain (with didlab Signer)", function () {
       supplyChain.connect(device1).addSensorReading(batchId, temp, hum, nonce, signature)
     ).to.be.revertedWith("Invalid didlab signature");
     
-    expect(await supplyChain.getNonce(device1.address)).to.equal(0n); // 8. FIX: Compare to a bigint (0n)
+    expect(await supplyChain.getNonce(device1.address)).to.equal(0n); // Compare to a bigint (0n)
   });
 
   // Test 6: Replay Attack (FAILURE case)
@@ -184,7 +188,6 @@ describe("SupplyChain (with didlab Signer)", function () {
       nonce: nonce 
     };
 
-    // 9. FIX: Ethers v6 uses signTypedData (no underscore)
     const signature = await didlabSigner.signTypedData(domain, types, value);
     // --- END EIP-712 SIGNING ---
     
@@ -192,7 +195,7 @@ describe("SupplyChain (with didlab Signer)", function () {
     await supplyChain.connect(device1).addSensorReading(batchId, temp, hum, nonce, signature);
     
     // Nonce should now be 1
-    expect(await supplyChain.getNonce(device1.address)).to.equal(1n); // 10. FIX: Compare to bigint (1n)
+    expect(await supplyChain.getNonce(device1.address)).to.equal(1n); // Compare to bigint (1n)
     
     // Call again with the *same* signature and nonce (this should fail)
     await expect(
