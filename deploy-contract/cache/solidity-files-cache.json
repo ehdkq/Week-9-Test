@@ -376,8 +376,8 @@
       ]
     },
     "/home/geekaboo/Blockchain-Main-Project/deploy-contract/contracts/SupplyChain.sol": {
-      "lastModificationDate": 1761446322531,
-      "contentHash": "991d616fd584fbc1ffe36cc2d3136a22",
+      "lastModificationDate": 1761524603367,
+      "contentHash": "12bea987c3ebcca59350ccebbbe810a6",
       "sourceName": "contracts/SupplyChain.sol",
       "solcConfig": {
         "version": "0.8.20",

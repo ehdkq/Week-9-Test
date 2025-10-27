@@ -17,21 +17,22 @@ const supplyChain = await ethers.deployContract("SupplyChain", [didlabSigner.add
       hum: string,
       nonce: bigint
     ) => {
-      // 2. CHANGED: No longer uses 'hre'
       return ethers.keccak256(
         ethers.solidityPacked(
-          ["address", "address", "uint256", "string", "string", "uint256"],
-          [
-            await supplyChain.getAddress(),
-            user,
-            batchId,
-            temp,
-            hum,
-            nonce,
-          ]
-        )
-      );
-    };
+        ["address", "address", "uint256", "string", "string", "uint256"],
+        [
+          await supplyChain.getAddress(), // address(this)
+          user,                           // msg.sender (device1)
+          BigInt(batchId),
+          temp,
+          hum,
+          nonce
+        ]
+      )
+    );
+  };
+
+
 
     return { 
       supplyChain, 
@@ -71,7 +72,7 @@ const supplyChain = await ethers.deployContract("SupplyChain", [didlabSigner.add
     const batchId = 1;
     const temp = "25C";
     const hum = "60%";
-    const nonce = await supplyChain.getNonce(device1.address); // 0n
+    const nonce = BigInt(await supplyChain.getNonce(device1.address)); // 0n
     
     const txHash = await getTxHash(device1.address, batchId, temp, hum, nonce);
     // 2. CHANGED: No longer uses 'hre'
@@ -118,7 +119,7 @@ const supplyChain = await ethers.deployContract("SupplyChain", [didlabSigner.add
     const nonce = await supplyChain.getNonce(device1.address); // nonce = 0
     const txHash = await getTxHash(device1.address, batchId, temp, hum, nonce);
     // 2. CHANGED: No longer uses 'hre'
-    const signature = await didlabSigner.signMessage(ethers.toBeArray(txHash));
+    const signature = await didlabSigner.signMessage(ethers.getBytes(txHash));
     
     await supplyChain.connect(device1).addSensorReading(batchId, temp, hum, nonce, signature);
     expect(await supplyChain.getNonce(device1.address)).to.equal(1);

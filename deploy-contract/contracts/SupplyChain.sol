@@ -130,6 +130,7 @@ contract SupplyChain {
         pure
         returns (address)
     {
+        bytes32 ethSignedHash = ECDSA.toEthSignedMessageHash(_hash);
         return ECDSA.recover(_hash, _signature);
     }
 
