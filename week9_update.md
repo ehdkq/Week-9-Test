@@ -21,25 +21,8 @@ The Week 9 update introduces:
 
 ---
 
-## ⚙️ Project Structure
 
-```
-Week-9-Test/
-├── contracts/
-│   └── AgriSensorData.sol
-├── test/
-│   └── AgriSensorData.t.sol
-├── scripts/
-│   └── deploy.ts
-├── SECURITY_NOTES.md
-├── foundry.toml
-├── hardhat.config.ts
-└── README.md   ← you are here
-```
-
----
-
-## 🌱 Feature 2 – “Verified Crop Certification Registry”
+## Feature 2 – “Verified Crop Certification Registry”
 
 **Purpose:** Adds a secure registry where only authorized inspectors can issue crop-quality certificates linked to farmer and supply-chain records.
 
@@ -59,7 +42,7 @@ Week-9-Test/
 
 ---
 
-## 🔐 Authorization Enforcement
+## Authorization Enforcement
 
 ### **Mechanism**
 
@@ -80,7 +63,7 @@ Week-9-Test/
 
 ---
 
-## 🧪 Testing
+##  Testing
 
 ### **Environment**
 
@@ -107,7 +90,7 @@ forge test -vvv
 
 ---
 
-## 🛡️ SECURITY_NOTES.md (Summary)
+## SECURITY_NOTES.md (Summary)
 
 | Category              | Description                                                                                                                                                                     |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
