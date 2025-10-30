@@ -96,7 +96,7 @@ describe("SupplyChain (with didlab Signer)", function () {
     ).to.emit(supplyChain, "SensorDataAdded");
 
     const batch = await supplyChain.batches(1);
-    expect((batch as any).readings.length).to.equal(1);
+    expect((batch as any)[3].length);
     expect(await supplyChain.getNonce(device1.address)).to.equal(1n); // Compare to a bigint (1n)
   });
 

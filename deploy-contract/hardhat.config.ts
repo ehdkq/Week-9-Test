@@ -10,7 +10,7 @@ const config: HardhatUserConfig = {
   solidity: { version: "0.8.20", settings: { optimizer: { enabled: true, runs: 200 } } },
   defaultNetwork: "hardhat",
   networks: {
-    hardhat: { chainId: 31337 },
+    hardhat: { chainId: 252501 },
     ...(RPC_URL && PRIVATE_KEY
       ? { didlab: { url: RPC_URL, chainId: CHAIN_ID, accounts: [PRIVATE_KEY] } }
       : {}),
