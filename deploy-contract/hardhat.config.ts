@@ -1,19 +1,35 @@
 import "dotenv/config";
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+// We removed the extra "@nomicfoundation/hardhat-ethers" import earlier
 
-const RPC_URL = process.env.RPC_URL || "";
-const CHAIN_ID = Number(process.env.CHAIN_ID || "31337");
-const PRIVATE_KEY = process.env.PRIVATE_KEY || "";
+// These variables are loaded from your .env file
+const RPC_URL = process.env.RPC_URL!;
+const CHAIN_ID = Number(process.env.CHAIN_ID || "31338");
+const PRIVKEY = process.env.PRIVKEY!;
 
 const config: HardhatUserConfig = {
-  solidity: { version: "0.8.20", settings: { optimizer: { enabled: true, runs: 200 } } },
-  defaultNetwork: "hardhat",
+  solidity: {
+    version: "0.8.20",
+    settings: {
+    evmVersion: "paris", 
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
   networks: {
-    hardhat: { chainId: 252501 },
-    ...(RPC_URL && PRIVATE_KEY
-      ? { didlab: { url: RPC_URL, chainId: CHAIN_ID, accounts: [PRIVATE_KEY] } }
-      : {}),
+    // This is the network you need to add back
+    didlab: {
+      url: RPC_URL,
+      chainId: CHAIN_ID,
+      accounts: PRIVKEY ? [PRIVKEY] : [],
+    },
+    // You might also have a 'hardhat' network definition here
+    hardhat: {
+      // Config for the local node
+    }
   },
 };
 
